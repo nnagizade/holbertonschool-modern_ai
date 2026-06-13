@@ -1,30 +1,41 @@
 #!/usr/bin/env python3
-"""
-Module containing the Agglomerative function for hierarchical clustering.
-"""
-import scipy.cluster.hierarchy as sch
+"""Agglomerative Hierarchical Clustering"""
+
 from sklearn import cluster
+from sklearn import metrics
+Apply_PCA = __import__('1-pca').Apply_PCA
 
 
-def Agglomerative(X, n_clusters):
+def Agglomerative_Clustering(X, n_clusters, random_state, n_components,
+                              use_pca_data=True):
     """
-    Performs agglomerative hierarchical clustering on tabular data and
-    plots the corresponding dendrogram.
+    Performs Agglomerative Hierarchical Clustering on tabular data.
 
-    Parameters:
-    - X (numpy.ndarray): Tabular data of shape (n_samples, n_features)
-    - n_clusters (int): Number of clusters to find
+    Args:
+        X (numpy.ndarray): Tabular data of shape (n_samples, n_features)
+        n_clusters (int): Number of clusters
+        random_state (int): Random seed for reproducibility
+        n_components (int): Number of PCA components (used only if use_pca_data=True)
+        use_pca_data (bool): Whether to apply PCA before clustering
 
     Returns:
-    - numpy.ndarray: Cluster labels for each data point of shape (n_samples,)
+        sklearn.cluster.AgglomerativeClustering: Fitted clustering instance
+        numpy.ndarray: Data used for fitting (PCA-reduced or original)
+        float: Silhouette score (None if n_clusters=1)
     """
-    linkage_matrix = sch.linkage(X, method='ward')
-    sch.dendrogram(linkage_matrix)
+    if use_pca_data:
+        X_used, _ = Apply_PCA(X, n_components=n_components,
+                               random_state=random_state)
+    else:
+        X_used = X
 
-    agg_model = cluster.AgglomerativeClustering(
-        n_clusters=n_clusters,
-        linkage='ward'
-    )
-    labels = agg_model.fit_predict(X)
+    model = cluster.AgglomerativeClustering(n_clusters=n_clusters,
+                                            linkage='ward')
+    model.fit(X_used)
 
-    return labels
+    if n_clusters > 1:
+        score = metrics.silhouette_score(X_used, model.labels_)
+    else:
+        score = None
+
+    return model, X_used, score
